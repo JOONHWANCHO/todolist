@@ -53,6 +53,9 @@
           <i data-lucide="calendar-days" class="w-5 h-5 text-indigo-500"></i>
           <label for="task-date-picker" class="font-semibold text-slate-700 text-sm">조회 날짜:</label>
           <input type="date" id="task-date-picker" onchange="fetchData()" class="border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+          <button onclick="goToToday()" class="px-2.5 py-1 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition border border-slate-200">
+            오늘
+          </button>
         </div>
         <div class="flex items-center gap-4 text-xs sm:text-sm font-medium">
           <span id="task-summary-count" class="text-slate-500">전체 0개</span>
@@ -190,6 +193,15 @@
     // ==========================================
     const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx8xXmu7QOY3RPMlfzlRKQXcJjFR5tRlupcO1QqUzD56WoUlqBANyVpRRy4VBZ38JkJ/exec';
 
+    // 접속한 기기/환경의 오늘 날짜(YYYY-MM-DD)를 반환하는 함수
+    function getTodayDateString() {
+      const today = new Date();
+      const year = today.getFullYear();
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      return `${year}-${month}-${day}`;
+    }
+
     const CATEGORY_STYLES = {
       '업무': { emoji: '💼', badgeClass: 'bg-blue-50 text-blue-600 border-blue-100', barClass: 'bg-blue-500' },
       '공부': { emoji: '📚', badgeClass: 'bg-indigo-50 text-indigo-600 border-indigo-100', barClass: 'bg-indigo-500' },
@@ -207,7 +219,7 @@
     }
 
     let state = {
-      selectedDate: new Date().toISOString().split('T')[0],
+      selectedDate: getTodayDateString(), // 접속 시 오늘의 날짜로 자동 초기화
       tasks: [],
       goals: [],
       activeTab: 'tasks',
@@ -220,6 +232,12 @@
       lucide.createIcons();
       fetchData();
     });
+
+    function goToToday() {
+      const todayStr = getTodayDateString();
+      document.getElementById('task-date-picker').value = todayStr;
+      fetchData();
+    }
 
     function switchTab(tab) {
       state.activeTab = tab;
@@ -490,7 +508,7 @@
       } catch (err) {
         console.error(err);
         alert('저장 도중 오류가 발생했습니다.');
-      } finally {
+      } font-semibold {
         saveBtn.disabled = false;
         saveBtn.innerHTML = `<i data-lucide="save" class="w-4 h-4"></i> 메모 저장`;
         lucide.createIcons();
