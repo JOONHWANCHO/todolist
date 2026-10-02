@@ -53,6 +53,10 @@
           <i data-lucide="calendar-days" class="w-5 h-5 text-indigo-500"></i>
           <label for="task-date-picker" class="font-semibold text-slate-700 text-sm">조회 날짜:</label>
           <input type="date" id="task-date-picker" onchange="fetchData()" class="border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+          <!-- [추가] 오늘 날짜 바로가기 버튼 -->
+          <button onclick="goToToday()" class="px-2.5 py-1 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition">
+            오늘
+          </button>
         </div>
         <div class="flex items-center gap-4 text-xs sm:text-sm font-medium">
           <span id="task-summary-count" class="text-slate-500">전체 0개</span>
@@ -634,6 +638,12 @@
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+    }
+
+    function goToToday() {
+      const todayStr = getTodayDateString();
+      document.getElementById('task-date-picker').value = todayStr;
+      fetchData();
     }
   </script>
 </body>
