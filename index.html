@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>To-Do & Goal Dashboard</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+    body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen">
+
+  <div class="max-w-4xl mx-auto p-4 sm:p-6 lg:p-8">
+    
+    <!-- 헤더 영역 -->
+    <header class="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-slate-200 pb-4">
+      <div>
+        <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+          <i data-lucide="check-square" class="w-7 h-7 text-indigo-600"></i>
+          To-Do & Goal Tracker
+        </h1>
+        <p class="text-xs sm:text-sm text-slate-500 mt-1">목표 달성을 위한 일별 과제 및 성과 관리</p>
+      </div>
+
+      <!-- 상단 탭 버튼 -->
+      <div class="flex bg-slate-200 p-1 rounded-xl w-full sm:w-auto">
+        <button id="tab-tasks-btn" onclick="switchTab('tasks')" class="flex-1 sm:flex-none px-4 py-2 text-sm font-semibold rounded-lg bg-white text-indigo-600 shadow-sm transition">
+          <i data-lucide="calendar" class="w-4 h-4 inline-block mr-1"></i>일일 Task
+        </button>
+        <button id="tab-goals-btn" onclick="switchTab('goals')" class="flex-1 sm:flex-none px-4 py-2 text-sm font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition">
+          <i data-lucide="target" class="w-4 h-4 inline-block mr-1"></i>목표 대시보드
+        </button>
+      </div>
+    </header>
+
+    <!-- 1. 일일 Task 탭 콘텐츠 -->
+    <main id="tab-tasks-view" class="space-y-6">
+      
+      <!-- 날짜 선택 및 요약 카드 -->
+      <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 flex flex-wrap justify-between items-center gap-4">
+        <div class="flex items-center gap-2">
+          <i data-lucide="calendar-days" class="w-5 h-5 text-indigo-500"></i>
+          <label for="task-date-picker" class="font-semibold text-slate-700 text-sm">조회 날짜:</label>
+          <input type="date" id="task-date-picker" onchange="fetchData()" class="border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+        </div>
+        <div class="flex items-center gap-4 text-xs sm:text-sm font-medium">
+          <span id="task-summary-count" class="text-slate-500">전체 0개</span>
+          <span id="task-summary-progress" class="text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full font-bold">진행률 0%</span>
+        </div>
+      </div>
+
+      <!-- Task 입력 폼 -->
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+        <h2 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+          <i data-lucide="plus-circle" class="w-4 h-4 text-indigo-500"></i> 새 Task 추가
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+          <input type="text" id="task-content-input" placeholder="오늘 할 일을 입력하세요..." class="sm:col-span-6 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+          <select id="task-category-select" class="sm:col-span-2 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white">
+            <option value="업무">💼 업무</option>
+            <option value="공부">📚 공부</option>
+            <option value="운동">🏋️ 운동</option>
+            <option value="개인">👤 개인</option>
+            <option value="기타">📌 기타</option>
+          </select>
+          <select id="task-goal-select" class="sm:col-span-3 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white">
+            <option value="">연관 목표 없음</option>
+          </select>
+          <button onclick="addTask()" class="sm:col-span-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl py-2 flex items-center justify-center transition shadow-sm">
+            <i data-lucide="plus" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Task 목록 -->
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="font-bold text-slate-800">오늘의 Task</h2>
+          <button onclick="fetchData()" class="text-xs text-slate-400 hover:text-slate-600 flex items-center gap-1">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> 새로고침
+          </button>
+        </div>
+        <ul id="tasks-list" class="space-y-2.5">
+          <li class="text-center py-8 text-slate-400 text-sm">데이터를 불러오는 중입니다...</li>
+        </ul>
+      </div>
+    </main>
+
+    <!-- 2. 목표 대시보드 탭 콘텐츠 -->
+    <main id="tab-goals-view" class="space-y-6 hidden">
+      
+      <!-- 목표 생성 폼 -->
+      <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+        <h2 class="text-sm font-bold text-slate-700 flex items-center gap-2">
+          <i data-lucide="target" class="w-4 h-4 text-indigo-500"></i> 새로운 목표 설정
+        </h2>
+        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3">
+          <input type="text" id="goal-title-input" placeholder="목표 제목 (예: SQLP 자격증 취득)" class="sm:col-span-5 border border-slate-200 rounded-xl px-3.5 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+          <select id="goal-category-select" class="sm:col-span-3 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white">
+            <option value="커리어/자기개발">🚀 커리어/자기개발</option>
+            <option value="건강/운동">🏋️ 건강/운동</option>
+            <option value="자산/재테크">💰 자산/재테크</option>
+            <option value="프로젝트">💻 프로젝트</option>
+            <option value="기타">🎯 기타</option>
+          </select>
+          <input type="date" id="goal-targetdate-input" class="sm:col-span-3 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
+          <button onclick="addGoal()" class="sm:col-span-1 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl py-2 flex items-center justify-center transition shadow-sm">
+            <i data-lucide="plus" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- 목표 대시보드 카드 리스트 -->
+      <div id="goals-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div class="col-span-full text-center py-8 text-slate-400 text-sm">목표 목록을 불러오는 중입니다...</div>
+      </div>
+    </main>
+
+  </div>
+
+  <script>
+    // ==========================================
+    // Apps Script 배포 URL 입력 (필수)
+    // ==========================================
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzUbuw9pmO2KUUjpO3Gw3n-CHsVxKPhWtFc3WhrVmGvXNcB7yQQH-eY-1tOXNSo_zFv/exec';
+
+    // 카테고리별 이모지 및 UI 스타일 정의
+    const CATEGORY_STYLES = {
+      // Task 카테고리
+      '업무': { emoji: '💼', badgeClass: 'bg-blue-50 text-blue-600 border-blue-100', barClass: 'bg-blue-500' },
+      '공부': { emoji: '📚', badgeClass: 'bg-indigo-50 text-indigo-600 border-indigo-100', barClass: 'bg-indigo-500' },
+      '운동': { emoji: '🏋️', badgeClass: 'bg-emerald-50 text-emerald-600 border-emerald-100', barClass: 'bg-emerald-500' },
+      '개인': { emoji: '👤', badgeClass: 'bg-amber-50 text-amber-600 border-amber-100', barClass: 'bg-amber-500' },
+
+      // Goal 카테고리
+      '커리어/자기개발': { emoji: '🚀', badgeClass: 'bg-indigo-50 text-indigo-600 border-indigo-100', barClass: 'bg-indigo-500' },
+      '건강/운동': { emoji: '🏋️', badgeClass: 'bg-emerald-50 text-emerald-600 border-emerald-100', barClass: 'bg-emerald-500' },
+      '자산/재테크': { emoji: '💰', badgeClass: 'bg-amber-50 text-amber-600 border-amber-100', barClass: 'bg-amber-500' },
+      '프로젝트': { emoji: '💻', badgeClass: 'bg-sky-50 text-sky-600 border-sky-100', barClass: 'bg-sky-500' },
+
+      // 기본값
+      'DEFAULT': { emoji: '📌', badgeClass: 'bg-slate-100 text-slate-600 border-slate-200', barClass: 'bg-slate-500' }
+    };
+
+    function getCategoryStyle(catName) {
+      return CATEGORY_STYLES[catName] || CATEGORY_STYLES['DEFAULT'];
+    }
+
+    let state = {
+      selectedDate: new Date().toISOString().split('T')[0],
+      tasks: [],
+      goals: [],
+      activeTab: 'tasks'
+    };
+
+    // 초기화
+    document.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('task-date-picker').value = state.selectedDate;
+      lucide.createIcons();
+      fetchData();
+    });
+
+    // 탭 전환
+    function switchTab(tab) {
+      state.activeTab = tab;
+      const tasksBtn = document.getElementById('tab-tasks-btn');
+      const goalsBtn = document.getElementById('tab-goals-btn');
+      const tasksView = document.getElementById('tab-tasks-view');
+      const goalsView = document.getElementById('tab-goals-view');
+
+      if (tab === 'tasks') {
+        tasksBtn.className = "flex-1 sm:flex-none px-4 py-2 text-sm font-semibold rounded-lg bg-white text-indigo-600 shadow-sm transition";
+        goalsBtn.className = "flex-1 sm:flex-none px-4 py-2 text-sm font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition";
+        tasksView.classList.remove('hidden');
+        goalsView.classList.add('hidden');
+      } else {
+        goalsBtn.className = "flex-1 sm:flex-none px-4 py-2 text-sm font-semibold rounded-lg bg-white text-indigo-600 shadow-sm transition";
+        tasksBtn.className = "flex-1 sm:flex-none px-4 py-2 text-sm font-semibold rounded-lg text-slate-600 hover:text-slate-900 transition";
+        goalsView.classList.remove('hidden');
+        tasksView.classList.add('hidden');
+      }
+    }
+
+    // 서버 데이터 조회 (GET)
+    async function fetchData() {
+      const selectedDate = document.getElementById('task-date-picker').value;
+      state.selectedDate = selectedDate;
+
+      try {
+        const response = await fetch(`${SCRIPT_URL}?date=${selectedDate}`);
+        const result = await response.json();
+
+        if (result.status === 'success') {
+          state.tasks = result.data.tasks || [];
+          state.goals = result.data.goals || [];
+          renderTasks();
+          renderGoals();
+          updateGoalSelectOptions();
+        } else {
+          alert('데이터 조회 실패: ' + result.message);
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Task 연동 목표 셀렉트박스 옵션 업데이트
+    function updateGoalSelectOptions() {
+      const goalSelect = document.getElementById('task-goal-select');
+      goalSelect.innerHTML = '<option value="">연관 목표 없음</option>';
+      
+      state.goals.forEach(goal => {
+        if (goal.status !== 'COMPLETED') {
+          const style = getCategoryStyle(goal.category);
+          const opt = document.createElement('option');
+          opt.value = goal.id;
+          opt.textContent = `${style.emoji} ${goal.title}`;
+          goalSelect.appendChild(opt);
+        }
+      });
+    }
+
+    // Task 목록 렌더링
+    function renderTasks() {
+      const listEl = document.getElementById('tasks-list');
+      const countEl = document.getElementById('task-summary-count');
+      const progressEl = document.getElementById('task-summary-progress');
+
+      countEl.textContent = `전체 ${state.tasks.length}개`;
+      const completedCount = state.tasks.filter(t => t.isCompleted).length;
+      const percent = state.tasks.length > 0 ? Math.round((completedCount / state.tasks.length) * 100) : 0;
+      progressEl.textContent = `진행률 ${percent}%`;
+
+      if (state.tasks.length === 0) {
+        listEl.innerHTML = `<li class="text-center py-8 text-slate-400 text-sm">등록된 Task가 없습니다.</li>`;
+        return;
+      }
+
+      listEl.innerHTML = state.tasks.map(task => {
+        const catStyle = getCategoryStyle(task.category);
+        const linkedGoal = state.goals.find(g => g.id === task.goalId);
+        
+        let goalBadge = '';
+        if (linkedGoal) {
+          const goalCatStyle = getCategoryStyle(linkedGoal.category);
+          goalBadge = `<span class="bg-purple-50 text-purple-700 border border-purple-100 text-[11px] font-semibold px-2 py-0.5 rounded-md flex items-center gap-1">
+            <span>${goalCatStyle.emoji}</span>${escapeHtml(linkedGoal.title)}
+          </span>`;
+        }
+
+        return `
+          <li class="flex items-center justify-between p-3 rounded-xl border border-slate-100 hover:border-slate-200 bg-slate-50/50 transition gap-3">
+            <div class="flex items-center gap-3 min-w-0 flex-1">
+              <input type="checkbox" ${task.isCompleted ? 'checked' : ''} onchange="toggleTask('${task.id}')" class="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500 cursor-pointer" />
+              <div class="min-w-0 flex-1">
+                <p class="text-sm font-medium ${task.isCompleted ? 'line-through text-slate-400' : 'text-slate-800'} truncate">${escapeHtml(task.content)}</p>
+                <div class="flex items-center gap-2 mt-1">
+                  <span class="text-[11px] px-2 py-0.5 rounded-md font-semibold border ${catStyle.badgeClass}">
+                    ${catStyle.emoji} ${escapeHtml(task.category)}
+                  </span>
+                  ${goalBadge}
+                </div>
+              </div>
+            </div>
+            <button onclick="deleteTask('${task.id}')" class="text-slate-400 hover:text-rose-500 p-1 transition">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          </li>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    // Goal 대시보드 렌더링
+    function renderGoals() {
+      const container = document.getElementById('goals-container');
+
+      if (state.goals.length === 0) {
+        container.innerHTML = `<div class="col-span-full text-center py-12 bg-white rounded-2xl border border-slate-100 text-slate-400 text-sm">등록된 목표가 없습니다. 새로운 목표를 설정해 보세요!</div>`;
+        return;
+      }
+
+      container.innerHTML = state.goals.map(goal => {
+        const isCompleted = goal.status === 'COMPLETED';
+        const percent = goal.progressPercent || 0;
+        const catStyle = getCategoryStyle(goal.category);
+
+        // 진행률 바 색상 (완료 시 에메랄드, 카테고리별 상징색 적용)
+        const progressBarColor = isCompleted ? 'bg-emerald-500' : catStyle.barClass;
+
+        return `
+          <div class="bg-white p-5 rounded-2xl shadow-sm border ${isCompleted ? 'border-emerald-200 bg-emerald-50/10' : 'border-slate-100'} space-y-4 flex flex-col justify-between">
+            <div>
+              <div class="flex justify-between items-start gap-2 mb-2">
+                <span class="text-xs font-bold px-2.5 py-1 rounded-md border ${catStyle.badgeClass}">
+                  ${catStyle.emoji} ${escapeHtml(goal.category)}
+                </span>
+                <div class="flex items-center gap-1">
+                  <button onclick="toggleGoalStatus('${goal.id}', '${isCompleted ? 'IN_PROGRESS' : 'COMPLETED'}')" class="text-xs px-2 py-1 rounded-md border font-medium ${isCompleted ? 'border-slate-200 text-slate-600 hover:bg-slate-100' : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'} transition">
+                    ${isCompleted ? '진행중으로 복구' : '완료 처리'}
+                  </button>
+                  <button onclick="deleteGoal('${goal.id}')" class="text-slate-400 hover:text-rose-500 p-1 transition">
+                    <i data-lucide="trash-2" class="w-4 h-4"></i>
+                  </button>
+                </div>
+              </div>
+
+              <h3 class="font-bold text-slate-800 text-base ${isCompleted ? 'line-through text-slate-400' : ''}">${escapeHtml(goal.title)}</h3>
+              <p class="text-xs text-slate-400 mt-1 flex items-center gap-1">
+                <i data-lucide="calendar" class="w-3.5 h-3.5"></i> 목표일: ${goal.targetDate || '미정'}
+              </p>
+            </div>
+
+            <!-- 프로그레스 바 영역 -->
+            <div class="space-y-1.5 pt-2 border-t border-slate-100">
+              <div class="flex justify-between text-xs font-semibold">
+                <span class="text-slate-500">진행률 (${goal.completedTaskCount}/${goal.totalTaskCount} Task)</span>
+                <span class="${isCompleted ? 'text-emerald-600' : 'text-slate-700'}">${percent}%</span>
+              </div>
+              <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                <div class="${progressBarColor} h-full rounded-full transition-all duration-500" style="width: ${percent}%"></div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      lucide.createIcons();
+    }
+
+    // Task 추가
+    async function addTask() {
+      const content = document.getElementById('task-content-input').value.trim();
+      const category = document.getElementById('task-category-select').value;
+      const goalId = document.getElementById('task-goal-select').value;
+
+      if (!content) {
+        alert('Task 내용을 입력하세요.');
+        return;
+      }
+
+      const payload = {
+        action: 'CREATE',
+        date: state.selectedDate,
+        category: category,
+        content: content,
+        goalId: goalId
+      };
+
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+        if (result.status === 'success') {
+          document.getElementById('task-content-input').value = '';
+          fetchData();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Task 토글
+    async function toggleTask(id) {
+      try {
+        await fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'TOGGLE', id: id })
+        });
+        fetchData();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Task 삭제
+    async function deleteTask(id) {
+      if (!confirm('이 Task를 삭제하시겠습니까?')) return;
+      try {
+        await fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'DELETE', id: id })
+        });
+        fetchData();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Goal 추가
+    async function addGoal() {
+      const title = document.getElementById('goal-title-input').value.trim();
+      const category = document.getElementById('goal-category-select').value;
+      const targetDate = document.getElementById('goal-targetdate-input').value;
+
+      if (!title || !targetDate) {
+        alert('목표 제목과 목표일을 모두 입력하세요.');
+        return;
+      }
+
+      const payload = {
+        action: 'CREATE_GOAL',
+        title: title,
+        category: category,
+        targetDate: targetDate
+      };
+
+      try {
+        const res = await fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify(payload)
+        });
+        const result = await res.json();
+        if (result.status === 'success') {
+          document.getElementById('goal-title-input').value = '';
+          document.getElementById('goal-targetdate-input').value = '';
+          fetchData();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Goal 상태 변경 (완료 처리/진행중 복구)
+    async function toggleGoalStatus(id, newStatus) {
+      try {
+        await fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'UPDATE_GOAL_STATUS', id: id, status: newStatus })
+        });
+        fetchData();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // Goal 삭제
+    async function deleteGoal(id) {
+      if (!confirm('목표를 삭제하시겠습니까? (연관된 Task는 유지되며 연결만 해제됩니다)')) return;
+      try {
+        await fetch(SCRIPT_URL, {
+          method: 'POST',
+          body: JSON.stringify({ action: 'DELETE_GOAL', id: id })
+        });
+        fetchData();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // XSS 방지
+    function escapeHtml(str) {
+      return String(str || '')
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+  </script>
+</body>
+</html>
