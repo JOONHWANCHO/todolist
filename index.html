@@ -53,7 +53,6 @@
           <i data-lucide="calendar-days" class="w-5 h-5 text-indigo-500"></i>
           <label for="task-date-picker" class="font-semibold text-slate-700 text-sm">조회 날짜:</label>
           <input type="date" id="task-date-picker" onchange="fetchData()" class="border border-slate-200 rounded-lg px-3 py-1.5 text-sm font-medium focus:ring-2 focus:ring-indigo-500 focus:outline-none" />
-          <!-- [추가] 오늘 날짜 바로가기 버튼 -->
           <button onclick="goToToday()" class="px-2.5 py-1 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition">
             오늘
           </button>
@@ -151,7 +150,7 @@
         </button>
       </div>
 
-      <!-- 모달 서브 툴바 (편집/미리보기 탭) -->
+      <!-- 모달 서브 툴바 -->
       <div class="px-5 pt-3 pb-2 bg-white border-b border-slate-100 flex justify-between items-center text-xs">
         <div class="flex bg-slate-100 p-0.5 rounded-lg">
           <button id="memo-tab-edit-btn" onclick="switchMemoTab('edit')" class="px-3 py-1 font-semibold rounded-md bg-white text-indigo-600 shadow-sm transition">
@@ -164,13 +163,11 @@
         <span class="text-slate-400 hidden sm:inline">Markdown 지원 (# 제목, - 리스트, **강조**)</span>
       </div>
 
-      <!-- 모달 본문 (에디터 & Preview) -->
+      <!-- 모달 본문 -->
       <div class="p-5 flex-1 overflow-y-auto">
-        <!-- 편집 폼 -->
         <div id="memo-edit-container">
           <textarea id="modal-memo-textarea" rows="10" placeholder="오늘 이 Task를 진행하면서 작업한 세부 내용, 참고 링크, 코드 등을 마크다운 문법으로 기록해 보세요..." class="w-full border border-slate-200 rounded-xl p-3.5 text-sm focus:ring-2 focus:ring-indigo-500 focus:outline-none font-mono resize-none"></textarea>
         </div>
-        <!-- 미리보기 뷰 -->
         <div id="memo-preview-container" class="hidden min-h-[220px] p-4 bg-slate-50 rounded-xl border border-slate-100 prose prose-sm max-w-none prose-indigo">
         </div>
       </div>
@@ -192,7 +189,7 @@
     // ==========================================
     // Apps Script 배포 URL 입력 (필수)
     // ==========================================
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx8xXmu7QOY3RPMlfzlRKQXcJjFR5tRlupcO1QqUzD56WoUlqBANyVpRRy4VBZ38JkJ/exec';
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwkBwfnNk4ukCm_lZ1s2RiZzP0lNjhejaETvsJKbR8niE9ks6s0oqUCdHwGmsRQl-CA/exec';
 
     const CATEGORY_STYLES = {
       '업무': { emoji: '💼', badgeClass: 'bg-blue-50 text-blue-600 border-blue-100', barClass: 'bg-blue-500' },
@@ -210,23 +207,22 @@
       return CATEGORY_STYLES[catName] || CATEGORY_STYLES['DEFAULT'];
     }
 
-    // [수정] 현지 시간(접속 시점 기준) YYYY-MM-DD 포맷을 구하는 함수
     function getTodayDateString() {
       const today = new Date();
       const year = today.getFullYear();
       const month = String(today.getMonth() + 1).padStart(2, '0');
       const day = String(today.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
-  }
+      return `${year}-${month}-${day}`;
+    }
 
-    // [수정] 초기 상태값에 접속한 오늘의 날짜 할당
     let state = {
-      selectedDate: getTodayDateString(), // 접속한 날짜로 자동 설정
+      selectedDate: getTodayDateString(),
       tasks: [],
       goals: [],
       activeTab: 'tasks',
       currentSelectedTaskId: null,
-      activeMemoTab: 'edit'
+      activeMemoTab: 'edit',
+      expandedGoalId: null // 현재 펼쳐진 목표 ID
     };
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -362,15 +358,16 @@
         const percent = goal.progressPercent || 0;
         const catStyle = getCategoryStyle(goal.category);
         const progressBarColor = isCompleted ? 'bg-emerald-500' : catStyle.barClass;
+        const isExpanded = state.expandedGoalId === goal.id;
 
         return `
-          <div class="bg-white p-5 rounded-2xl shadow-sm border ${isCompleted ? 'border-emerald-200 bg-emerald-50/10' : 'border-slate-100'} space-y-4 flex flex-col justify-between">
+          <div class="bg-white p-5 rounded-2xl shadow-sm border ${isCompleted ? 'border-emerald-200 bg-emerald-50/10' : 'border-slate-100'} space-y-4 flex flex-col justify-between cursor-pointer hover:border-indigo-300 transition" onclick="toggleGoalExpand('${goal.id}')">
             <div>
               <div class="flex justify-between items-start gap-2 mb-2">
                 <span class="text-xs font-bold px-2.5 py-1 rounded-md border ${catStyle.badgeClass}">
                   ${catStyle.emoji} ${escapeHtml(goal.category)}
                 </span>
-                <div class="flex items-center gap-1">
+                <div class="flex items-center gap-1" onclick="event.stopPropagation()">
                   <button onclick="toggleGoalStatus('${goal.id}', '${isCompleted ? 'IN_PROGRESS' : 'COMPLETED'}')" class="text-xs px-2 py-1 rounded-md border font-medium ${isCompleted ? 'border-slate-200 text-slate-600 hover:bg-slate-100' : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'} transition">
                     ${isCompleted ? '진행중으로 복구' : '완료 처리'}
                   </button>
@@ -395,11 +392,96 @@
                 <div class="${progressBarColor} h-full rounded-full transition-all duration-500" style="width: ${percent}%"></div>
               </div>
             </div>
+
+            <!-- 목표 클릭 시 펼쳐지는 연관 Task 목록 -->
+            ${isExpanded ? `
+              <div id="goal-tasks-container-${goal.id}" class="mt-4 pt-3 border-t border-slate-200 space-y-2 cursor-default" onclick="event.stopPropagation()">
+                <div class="text-xs font-bold text-slate-600 mb-2 flex justify-between items-center">
+                  <span>📋 연관된 Task 목록</span>
+                  <span class="text-[11px] font-normal text-slate-400">클릭 시 메모 편집 모달 열기</span>
+                </div>
+                <div id="goal-tasks-list-${goal.id}" class="space-y-1.5 text-xs text-slate-400 py-1">
+                  불러오는 중...
+                </div>
+              </div>
+            ` : ''}
           </div>
         `;
       }).join('');
 
       lucide.createIcons();
+
+      if (state.expandedGoalId) {
+        loadGoalTasks(state.expandedGoalId);
+      }
+    }
+
+    // ==========================================
+    // 목표 확장 및 Task 처리 함수
+    // ==========================================
+
+    async function toggleGoalExpand(goalId) {
+      if (state.expandedGoalId === goalId) {
+        state.expandedGoalId = null;
+      } else {
+        state.expandedGoalId = goalId;
+      }
+      renderGoals();
+    }
+
+    async function loadGoalTasks(goalId) {
+      const container = document.getElementById(`goal-tasks-list-${goalId}`);
+      if (!container) return;
+
+      try {
+        const response = await fetch(`${SCRIPT_URL}?goalId=${goalId}`);
+        const result = await response.json();
+
+        if (result.status === 'success') {
+          const goalTasks = result.data.tasks || [];
+          if (goalTasks.length === 0) {
+            container.innerHTML = `<p class="text-xs text-slate-400 italic py-2">연관된 Task가 없습니다.</p>`;
+            return;
+          }
+
+          container.innerHTML = goalTasks.map(t => `
+            <div class="flex items-center justify-between p-2 rounded-lg border border-slate-100 bg-slate-50 hover:bg-slate-100 text-xs gap-2 cursor-pointer transition" onclick="openTaskModalFromData('${t.id}')">
+              <div class="flex items-center gap-2 min-w-0 flex-1">
+                <input type="checkbox" ${t.isCompleted ? 'checked' : ''} onclick="event.stopPropagation()" onchange="toggleTaskFromGoal('${t.id}', '${goalId}')" class="w-3.5 h-3.5 text-indigo-600 rounded border-slate-300" />
+                <span class="${t.isCompleted ? 'line-through text-slate-400' : 'text-slate-700'} truncate font-medium">${escapeHtml(t.content)}</span>
+              </div>
+              <span class="text-[10px] text-slate-400 whitespace-nowrap bg-white px-1.5 py-0.5 rounded border border-slate-200">${t.date}</span>
+            </div>
+          `).join('');
+        }
+      } catch (err) {
+        console.error(err);
+        container.innerHTML = `<p class="text-xs text-rose-500 py-2">Task 목록을 불러오지 못했습니다.</p>`;
+      }
+    }
+
+    async function toggleTaskFromGoal(taskId, goalId) {
+      await toggleTask(taskId);
+      loadGoalTasks(goalId);
+    }
+
+    async function openTaskModalFromData(taskId) {
+      let task = state.tasks.find(t => t.id === taskId);
+      if (!task) {
+        try {
+          const res = await fetch(`${SCRIPT_URL}?date=`);
+          const result = await res.json();
+          if (result.status === 'success') {
+            state.tasks = result.data.tasks;
+            task = state.tasks.find(t => t.id === taskId);
+          }
+        } catch(e) {
+          console.error(e);
+        }
+      }
+      if (task) {
+        openTaskModal(task.id);
+      }
     }
 
     // ==========================================
@@ -412,7 +494,6 @@
 
       state.currentSelectedTaskId = taskId;
 
-      // 헤더 카테고리 & 목표 바인딩
       const catStyle = getCategoryStyle(task.category);
       const catEl = document.getElementById('modal-task-category');
       catEl.textContent = `${catStyle.emoji} ${task.category}`;
@@ -455,7 +536,6 @@
         previewBtn.className = "px-3 py-1 font-semibold rounded-md bg-white text-indigo-600 shadow-sm transition";
         editBtn.className = "px-3 py-1 font-semibold rounded-md text-slate-500 hover:text-slate-800 transition";
         
-        // Markdown Rendering
         const rawMarkdown = document.getElementById('modal-memo-textarea').value;
         if (rawMarkdown.trim().length === 0) {
           previewContainer.innerHTML = '<p class="text-slate-400 italic">작성된 메모가 없습니다.</p>';
@@ -492,12 +572,15 @@
 
         const result = await res.json();
         if (result.status === 'success') {
-          // 로컬 상태 업데이트
           const task = state.tasks.find(t => t.id === state.currentSelectedTaskId);
           if (task) task.memo = memoContent;
 
           renderTasks();
           closeTaskModal();
+          
+          if (state.expandedGoalId) {
+            loadGoalTasks(state.expandedGoalId);
+          }
         } else {
           alert('메모 저장 실패: ' + result.message);
         }
